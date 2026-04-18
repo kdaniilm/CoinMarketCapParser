@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Agents/">
+    <Project Path="ParserAgent/ParserAgent.csproj" Id="575eb72b-38f8-4cd2-9dbf-5426501d9d31" />
+  </Folder>
   <Project Path="BLL/BLL.csproj" />
   <Project Path="CoinMarketCapParser/CoinMarketCapParser.csproj" />
   <Project Path="Core/Core.csproj" />
