@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Playwright;
 using ParserAgent.Parsers;
 using ParserAgent.Parsers.Interfaces;
 
