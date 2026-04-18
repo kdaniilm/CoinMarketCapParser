@@ -1,14 +1,11 @@
-﻿using ParserAgent.Parsers.Interfaces;
+﻿using Core.Exceptions;
 using Microsoft.Playwright;
+using ParserAgent.Parsers.Interfaces;
 
 namespace ParserAgent.Parsers
 {
     public class CoinMarketAppParser : IParser
     {
-        public CoinMarketAppParser()
-        {
-        }
-
         public async Task Parse(string url)
         {
             try
@@ -26,7 +23,27 @@ namespace ParserAgent.Parsers
                 await page.GotoAsync(url);
                 Console.WriteLine($"Navigated to {url}.");
 
-                var html = await page.ContentAsync();
+                var loadMoreButton = page.Locator("button:has-text('Load More')");
+                var rows = page.Locator("table tbody tr");
+
+                if (loadMoreButton == null)
+                    throw new ElementNotFoundException("\"Load More\" button not found");
+
+                while (await loadMoreButton.IsVisibleAsync())
+                {
+                    Console.WriteLine("Clicking \"Load More\" button...");
+
+                    var countBefore = await rows.CountAsync();
+
+                    await loadMoreButton.ClickAsync();
+
+                    await page.WaitForFunctionAsync(
+                        @"(prev) => document.querySelectorAll('table tbody tr').length > prev",
+                        countBefore
+                    );
+
+                    Console.WriteLine($"Rows loaded: {await rows.CountAsync()}");
+                }
             }
             catch (Exception ex)
             {
