@@ -4,8 +4,8 @@ using System.Text;
 
 namespace Core.Exceptions
 {
-    public class ElementNotFoundException: Exception
+    public class ElementNotFoundException: ParsingException
     {
-        public ElementNotFoundException(string message): base(message) { }
+        public ElementNotFoundException(string? message = null): base(message) { }
     }
 }
