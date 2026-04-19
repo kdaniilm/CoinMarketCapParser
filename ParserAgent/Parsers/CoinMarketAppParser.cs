@@ -30,42 +30,78 @@ namespace ParserAgent.Parsers
                 await page.SetViewportSizeAsync(1920, 1080);
 
                 Console.WriteLine($"Navigating to {url}...");
+                await page.RouteAsync("**/*", route =>
+                {
+                    var type = route.Request.ResourceType;
+
+                    if (type == "image" ||
+                        type == "stylesheet" ||
+                        type == "font")
+                    {
+                        return route.AbortAsync();
+                    }
+
+                    return route.ContinueAsync();
+                });
                 await page.GotoAsync(url);
 
+                Console.WriteLine($"Searching for \"Load More\" button...");
                 var loadMoreButton = page.Locator("button:has-text('Load More')");
+
+                var isLoadMoreButtonExists = loadMoreButton != null && (await loadMoreButton.CountAsync() > 0);
+
+                if (!isLoadMoreButtonExists)
+                    Console.WriteLine("\"Load More\" button not found.");
+
+                Console.WriteLine("Start loading rows to parse...");
                 var rows = page.Locator("table tbody tr");
 
-                if (loadMoreButton == null)
-                    throw new ElementNotFoundException("\"Load More\" button not found");
-
-                while (await loadMoreButton.IsVisibleAsync())
+                if (isLoadMoreButtonExists)
                 {
-                    Console.WriteLine($"Rows loaded: {await rows.CountAsync()}");
-                    Console.WriteLine("Clicking \"Load More\" button...");
+                    while (await loadMoreButton!.IsVisibleAsync())
+                    {
+                        var rowsCount = await rows.CountAsync();
 
-                    var countBefore = await rows.CountAsync();
+                        Console.WriteLine($"Rows loaded: {rowsCount}");
+                        Console.WriteLine("Clicking \"Load More\" button...");
 
-                    await loadMoreButton.ClickAsync();
+                        await loadMoreButton.ClickAsync();
 
-                    await page.WaitForFunctionAsync(
-                        @"(prev) => document.querySelectorAll('table tbody tr').length > prev",
-                        countBefore
-                    );
+                        await page.WaitForFunctionAsync(
+                            @"(prev) => document.querySelectorAll('table tbody tr').length > prev",
+                            rowsCount
+                        );
+                    }
                 }
 
+                var total = await rows.CountAsync();
+
+                if (total == 0) {
+                    Console.WriteLine("No rows to parse.");
+                    return;
+                }
+
+                Console.WriteLine($"Total loaded rows count: {total}.");
+
                 Console.WriteLine("Start parsing rows...");
-                var allRows = await rows.AllAsync();
+
                 var parsedRows = new List<CoinMarketCapParsedDTO>();
 
-                foreach (var row in allRows)
+                for (int i = 0; i < total; i++)
                 {
-                    await row.ScrollIntoViewIfNeededAsync();
-                    var rowInnerHtml = await row.InnerHTMLAsync();
+                    Console.WriteLine($"Scrolling on row {i}...");
+                    await rows.Nth(i).ScrollIntoViewIfNeededAsync();
 
-                    var parsedRow = ParseRow(rowInnerHtml);
-                    parsedRows.Add(parsedRow);
+                    var row = rows.Nth(i);
 
-                    Console.WriteLine($"Rows parsed: {parsedRows.Count} of {await rows.CountAsync()}...");
+                    var parsed = ParseRow(await row.InnerTextAsync());
+
+                    if (parsed == null)
+                        Console.WriteLine($"Row have incorrect format: {row}");
+                    else
+                        parsedRows.Add(parsed);
+
+                    Console.WriteLine($"Parsed {i}/{total}");
                 }
 
                 Console.WriteLine("All rows parsed.");
@@ -84,23 +120,36 @@ namespace ParserAgent.Parsers
             }
         }
 
-        private static CoinMarketCapParsedDTO ParseRow(string html)
+        private static CoinMarketCapParsedDTO? ParseRow(string raw)
         {
-            var doc = new HtmlDocument();
-            doc.LoadHtml($"<tr>{html}</tr>");
+            if (string.IsNullOrWhiteSpace(raw))
+                return null;
 
-            var tds = doc.DocumentNode.SelectNodes("//td");
+            var parts = raw
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
 
-            var result = new CoinMarketCapParsedDTO();
-            result.ParsedDate = DateTime.Now;
-            result.Rank = int.Parse(tds[0].InnerText.Trim());
-            result.Name = tds[1].SelectSingleNode(".//a[contains(@class,'--name')]")?.InnerText.Trim();
-            result.Symbol = tds[1].SelectSingleNode(".//a[contains(@class,'--symbol')]")?.InnerText.Trim();
-            result.MarketCap = ParseDecimal(tds[3].SelectSingleNode(".//span[@data-nosnippet]").InnerText.Trim());
-            result.Price = ParseDecimal(tds[4].InnerText.Trim());
-            result.CirculatingSupply = ParseInt64(tds[5].InnerText.Trim());
-            result.Volume24h = ParseInt64(tds[6].InnerText.Trim());
-            result.Percent24h = ParseDecimal(tds[8].InnerText.Trim());
+            if (parts.Count < 10)
+                return null;
+
+            var result = new CoinMarketCapParsedDTO
+            {
+                ParsedDate = DateTime.Now,
+
+                Rank = int.Parse(parts[0]),
+                Name = parts[1],
+                Symbol = parts[2],
+
+                MarketCap = ParseDecimal(parts[3]),
+                Price = ParseDecimal(parts[4]),
+
+                CirculatingSupply = ParseInt64(parts[5]),
+                Volume24h = ParseInt64(parts[6]),
+
+                Percent24h = ParseDecimal(parts[8]),
+            };
 
             return result;
         }
@@ -130,6 +179,4 @@ namespace ParserAgent.Parsers
             } catch(Exception) { return 0; }
         }
     }
-
-    
 }
