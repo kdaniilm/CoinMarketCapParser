@@ -1,3 +1,5 @@
+using BLL.Services;
+using BLL.Services.Interfaces;
 using Core.DatabaseManager;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<IDatabaseManager, DatabaseManager>();
+builder.Services.AddScoped<IGetCoinMarketCupDataService, GetCoinMarketCupDataService>();
 
 var app = builder.Build();
 
