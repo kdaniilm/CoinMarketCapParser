@@ -85,16 +85,13 @@ namespace ParserAgent.Parsers
 
                 Console.WriteLine("Start parsing rows...");
 
-                for (int i = 0; i < total; i++)
-                {
-                    Console.WriteLine($"Scrolling on row {i}...");
-                    await rows.Nth(i).ScrollIntoViewIfNeededAsync();
-                }
-
                 var parsedRows = new List<CoinMarketCapParsedDTO>();
 
                 for (int i = 0; i < total; i++)
                 {
+                    Console.WriteLine($"Scrolling on row {i}...");
+                    await rows.Nth(i).ScrollIntoViewIfNeededAsync();
+
                     var row = rows.Nth(i);
 
                     var parsed = ParseRow(await row.InnerTextAsync());
