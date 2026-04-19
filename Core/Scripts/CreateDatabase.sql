@@ -11,16 +11,15 @@ IF OBJECT_ID('dbo.CoinMarketCup', 'U') IS NULL
 BEGIN
     CREATE TABLE dbo.CoinMarketCup
     (
+        [ParsedDate] DATETIME NOT NULL,
         [Rank] INT NOT NULL,
-        [Name] NVARCHAR(200) NULL,
-        [Symbol] NVARCHAR(50) NULL,
+        [Name] NVARCHAR(200)  NOT NULL,
+        [Symbol] NVARCHAR(50) NOT NULL,
         [MarketCap] DECIMAL(18, 2) NOT NULL,
         [Price] DECIMAL(18, 8) NOT NULL,
         [CirculatingSupply] BIGINT NULL,
         [Volume24h] BIGINT NULL,
-        [Percent24h] DECIMAL(10, 4) NOT NULL,
-
-        CONSTRAINT PK_CoinMarketCup PRIMARY KEY (Rank)
+        [Percent24h] DECIMAL(10, 4) NOT NULL
     );
 END
 GO

@@ -7,9 +7,7 @@ namespace Core.DatabaseManager
 {
     public interface IDatabaseManager
     {
-        public Task CreateDatabaseIfNotExists();
-        public Task InsertData(InsertDataModel insertDataModel);
-        public Task UpdateData(UpdateDataModel updateDataModel);
-        public Task<object> GetData(GetDataModel getDataModel);
+        public string ConnectionString { get; }
+        public Task CreateDatabaseIfNotExistsAsync();
     }
 }

@@ -8,16 +8,19 @@ namespace Core.DatabaseManager
 {
     public class DatabaseManager : IDatabaseManager
     {
-        public async Task CreateDatabaseIfNotExists()
+        public string ConnectionString { get; private set; }
+        public DatabaseManager()
         {
-            var connectionString = "Server=.;Integrated Security=true;TrustServerCertificate=True;";
+            ConnectionString = "Server=.;Integrated Security=true;TrustServerCertificate=True;";
+        }
 
-            var scriptPath = Path.GetFullPath(@"..\..\..\..\Core\Scripts\CreateDatabase.sql");
-            var script = await File.ReadAllTextAsync(scriptPath);
+        public async Task CreateDatabaseIfNotExistsAsync()
+        {
+            var script = await GetScriptAsync("CreateDatabase");
 
             var batches = script.Split(new[] { "GO" }, StringSplitOptions.RemoveEmptyEntries);
 
-            using var connection = new SqlConnection(connectionString);
+            using var connection = new SqlConnection(ConnectionString);
             await connection.OpenAsync();
 
             foreach (var batch in batches)
@@ -28,19 +31,12 @@ namespace Core.DatabaseManager
             }
         }
 
-        public Task<object> GetData(GetDataModel getDataModel)
+        private static async Task<string> GetScriptAsync(string scriptFileName)
         {
-            throw new NotImplementedException();
-        }
+            var scriptPath = Path.GetFullPath($@"..\..\..\..\Core\Scripts\{scriptFileName}.sql");
+            var script = await File.ReadAllTextAsync(scriptPath);
 
-        public Task InsertData(InsertDataModel insertDataModel)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task UpdateData(UpdateDataModel updateDataModel)
-        {
-            throw new NotImplementedException();
+            return script;
         }
     }
 }

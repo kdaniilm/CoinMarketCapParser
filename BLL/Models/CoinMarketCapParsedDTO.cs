@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Core.Models
+namespace BLL.Models
 {
-    public class CoinMarketCup
+    public class CoinMarketCapParsedDTO
     {
         public DateTime ParsedDate {  get; set; }
         public int Rank { get; set; }
