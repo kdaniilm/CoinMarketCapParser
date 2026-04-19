@@ -4,4 +4,4 @@ App builds with moduled architecture, were:
 1. Core - classLibrary to work with db, stores DatabaseManager, database identical models and scripts to create or update database.
 2. BLL - classLibrary to provide busines logic for Api and Parser.
 3. API - ASP.NET Core project with enabled swagger to get filtered data from database.
-4. ParserAgent - Console application to parse data from https://coinmarketcap.com/all/views/all/.
+4. ParserAgent - Console application to parse data from https://coinmarketcap.com/all/views/all/ and fuly independed from API.
