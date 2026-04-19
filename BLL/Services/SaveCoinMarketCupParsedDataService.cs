@@ -26,7 +26,7 @@ namespace BLL.Services
             {
                 using (var bulk = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction))
                 {
-                    bulk.DestinationTableName = "[CoinMarketDb].[dbo].[CoinMarketCup]";
+                    bulk.DestinationTableName = $"{_databaseManager.DatabaseName}.[dbo].[CoinMarketCup]";
 
                     bulk.ColumnMappings.Add("ParsedDate", "ParsedDate");
                     bulk.ColumnMappings.Add("Rank", "Rank");

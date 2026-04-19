@@ -1,7 +1,5 @@
 ﻿using BLL.Models;
 using BLL.Services.Interfaces;
-using Core.DatabaseManager;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers

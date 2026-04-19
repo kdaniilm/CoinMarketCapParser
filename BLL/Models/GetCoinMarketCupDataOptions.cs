@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace BLL.Models
+﻿namespace BLL.Models
 {
     public class GetCoinMarketCupDataOptions
     {
@@ -15,24 +11,18 @@ namespace BLL.Models
         public string OrderBy { get; set; } = "ParsedDate";
         public bool OrderByDescending { get; set; } = false;
 
-        public Filter<DateTime>? DateFilter {  get; set; }
+        public Option<DateTime>? DateFilter {  get; set; }
 
-        public Filter<int>? RankFilter { get; set; }
+        public Option<int>? RankFilter { get; set; }
 
-        public Filter<decimal>? MarketCapFilter { get; set; }
+        public Option<decimal>? MarketCapFilter { get; set; }
 
-        public Filter<decimal>? PriceFilter { get; set; }
+        public Option<decimal>? PriceFilter { get; set; }
 
-        public Filter<long>? CirculatingSupplyFilter { get; set; }
+        public Option<long>? CirculatingSupplyFilter { get; set; }
 
-        public Filter<long>? Volume24hFilter { get; set; }
+        public Option<long>? Volume24hFilter { get; set; }
 
-        public Filter<decimal>? Percent24hFilter { get; set; }
-    }
-
-    public class Filter<T>
-    {
-        public T? From { get; set; }
-        public T? To { get; set; }
+        public Option<decimal>? Percent24hFilter { get; set; }
     }
 }
