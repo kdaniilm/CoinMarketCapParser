@@ -1,8 +1,5 @@
 ﻿using BLL.Models;
 using BLL.Services.Interfaces;
-using Core.Exceptions;
-using Core.Models;
-using HtmlAgilityPack;
 using Microsoft.Playwright;
 using ParserAgent.Parsers.Interfaces;
 
@@ -107,11 +104,6 @@ namespace ParserAgent.Parsers
                 Console.WriteLine("All rows parsed.");
 
                 await _saveParsedDataService.SaveParsedDataAsync(parsedRows);
-            }
-            catch(ParsingException pe)
-            {
-                Console.WriteLine($"Parsing exception {pe.ToString()}");
-                throw;
             }
             catch (Exception e)
             {

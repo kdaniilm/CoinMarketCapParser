@@ -1,17 +1,15 @@
-﻿using Core.Models;
-using System;
-using System.Collections.Generic;
-using Microsoft.Data.SqlClient;
-using System.Text;
+﻿using Microsoft.Data.SqlClient;
 
 namespace Core.DatabaseManager
 {
     public class DatabaseManager : IDatabaseManager
     {
         public string ConnectionString { get; private set; }
+        public string DatabaseName { get; private set; }
         public DatabaseManager()
         {
             ConnectionString = "Server=.;Integrated Security=true;TrustServerCertificate=True;";
+            DatabaseName = "CoinMarketDb";
         }
 
         public async Task CreateDatabaseIfNotExistsAsync()

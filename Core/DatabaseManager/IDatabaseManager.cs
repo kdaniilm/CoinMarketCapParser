@@ -1,13 +1,10 @@
-﻿using Core.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Core.DatabaseManager
+﻿namespace Core.DatabaseManager
 {
     public interface IDatabaseManager
     {
         public string ConnectionString { get; }
+        public string DatabaseName { get; }
+
         public Task CreateDatabaseIfNotExistsAsync();
     }
 }

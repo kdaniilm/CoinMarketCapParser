@@ -2,8 +2,6 @@
 using BLL.Services.Interfaces;
 using Core.DatabaseManager;
 using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace BLL.Services
@@ -20,7 +18,7 @@ namespace BLL.Services
         public async Task<List<CoinMarketCapParsedDTO>> GetCoinMarketCupDataAsync(GetCoinMarketCupDataOptions options)
         {
             {
-                var sql = new StringBuilder(@"
+                var sql = new StringBuilder($@"
                     SELECT
                         ParsedDate,
                         Rank,
@@ -31,7 +29,7 @@ namespace BLL.Services
                         CirculatingSupply,
                         Volume24h,
                         Percent24h
-                    FROM CoinMarketDb.dbo.CoinMarketCup
+                    FROM {_databaseManager.DatabaseName}.dbo.CoinMarketCup
                     WHERE 1=1
                 ");
 
