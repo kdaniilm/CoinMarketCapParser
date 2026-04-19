@@ -1,30 +1,42 @@
 ﻿using Core.Models;
 using System;
 using System.Collections.Generic;
+using Microsoft.Data.SqlClient;
 using System.Text;
 
 namespace Core.DatabaseManager
 {
     public class DatabaseManager : IDatabaseManager
     {
-        public void CreateDatabase(string databaseName)
+        public string ConnectionString { get; private set; }
+        public DatabaseManager()
         {
-            throw new NotImplementedException();
+            ConnectionString = "Server=.;Integrated Security=true;TrustServerCertificate=True;";
         }
 
-        public void GetData(GetDataModel getDataModel)
+        public async Task CreateDatabaseIfNotExistsAsync()
         {
-            throw new NotImplementedException();
+            var script = await GetScriptAsync("CreateDatabase");
+
+            var batches = script.Split(new[] { "GO" }, StringSplitOptions.RemoveEmptyEntries);
+
+            using var connection = new SqlConnection(ConnectionString);
+            await connection.OpenAsync();
+
+            foreach (var batch in batches)
+            {
+                using var command = new SqlCommand(batch, connection);
+                command.CommandTimeout = 60;
+                await command.ExecuteNonQueryAsync();
+            }
         }
 
-        public void InsertData(InsertDataModel insertDataModel)
+        private static async Task<string> GetScriptAsync(string scriptFileName)
         {
-            throw new NotImplementedException();
-        }
+            var scriptPath = Path.GetFullPath($@"..\..\..\..\Core\Scripts\{scriptFileName}.sql");
+            var script = await File.ReadAllTextAsync(scriptPath);
 
-        public void UpdateData(UpdateDataModel updateDataModel)
-        {
-            throw new NotImplementedException();
+            return script;
         }
     }
 }

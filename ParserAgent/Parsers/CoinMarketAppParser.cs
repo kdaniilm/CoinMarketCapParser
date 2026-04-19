@@ -1,16 +1,22 @@
-﻿using Core.Exceptions;
+﻿using BLL.Models;
+using BLL.Services.Interfaces;
+using Core.Exceptions;
 using Core.Models;
 using HtmlAgilityPack;
 using Microsoft.Playwright;
 using ParserAgent.Parsers.Interfaces;
-using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
-using System.Xml;
 
 namespace ParserAgent.Parsers
 {
     public class CoinMarketAppParser : IParser
     {
+        private readonly ISaveParsedDataService _saveParsedDataService;
+
+        public CoinMarketAppParser(ISaveParsedDataService saveParsedDataService)
+        {
+            _saveParsedDataService = saveParsedDataService;
+        }
+
         public async Task Parse(string url)
         {
             try
@@ -34,6 +40,7 @@ namespace ParserAgent.Parsers
 
                 while (await loadMoreButton.IsVisibleAsync())
                 {
+                    Console.WriteLine($"Rows loaded: {await rows.CountAsync()}");
                     Console.WriteLine("Clicking \"Load More\" button...");
 
                     var countBefore = await rows.CountAsync();
@@ -44,13 +51,11 @@ namespace ParserAgent.Parsers
                         @"(prev) => document.querySelectorAll('table tbody tr').length > prev",
                         countBefore
                     );
-
-                    Console.WriteLine($"Rows loaded: {await rows.CountAsync()}");
                 }
 
                 Console.WriteLine("Start parsing rows...");
                 var allRows = await rows.AllAsync();
-                var parsedRows = new ConcurrentDictionary<string, CoinMarketCup>();
+                var parsedRows = new List<CoinMarketCapParsedDTO>();
 
                 foreach (var row in allRows)
                 {
@@ -58,12 +63,14 @@ namespace ParserAgent.Parsers
                     var rowInnerHtml = await row.InnerHTMLAsync();
 
                     var parsedRow = ParseRow(rowInnerHtml);
-                    parsedRows.TryAdd(parsedRow.Name!, parsedRow);
+                    parsedRows.Add(parsedRow);
 
                     Console.WriteLine($"Rows parsed: {parsedRows.Count} of {await rows.CountAsync()}...");
                 }
 
                 Console.WriteLine("All rows parsed.");
+
+                await _saveParsedDataService.SaveParsedDataAsync(parsedRows);
             }
             catch(ParsingException pe)
             {
@@ -77,14 +84,15 @@ namespace ParserAgent.Parsers
             }
         }
 
-        private static CoinMarketCup ParseRow(string html)
+        private static CoinMarketCapParsedDTO ParseRow(string html)
         {
             var doc = new HtmlDocument();
             doc.LoadHtml($"<tr>{html}</tr>");
 
             var tds = doc.DocumentNode.SelectNodes("//td");
 
-            var result = new CoinMarketCup();
+            var result = new CoinMarketCapParsedDTO();
+            result.ParsedDate = DateTime.Now;
             result.Rank = int.Parse(tds[0].InnerText.Trim());
             result.Name = tds[1].SelectSingleNode(".//a[contains(@class,'--name')]")?.InnerText.Trim();
             result.Symbol = tds[1].SelectSingleNode(".//a[contains(@class,'--symbol')]")?.InnerText.Trim();
