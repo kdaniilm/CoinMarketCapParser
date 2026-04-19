@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Core.DatabaseManager;
+using Microsoft.Extensions.DependencyInjection;
 using ParserAgent.Parsers;
 using ParserAgent.Parsers.Interfaces;
 
@@ -7,11 +8,13 @@ Microsoft.Playwright.Program.Main(new[] { "install" });
 Console.WriteLine("Dev tools instaled.");
 
 var services = new ServiceCollection();
-
+services.AddSingleton<IDatabaseManager, DatabaseManager>();
 services.AddScoped<IParser, CoinMarketAppParser>();
 
 using var serviceProvider = services.BuildServiceProvider();
 
-var parser = serviceProvider.GetRequiredService<IParser>();
+var databasemanager = serviceProvider.GetRequiredService<IDatabaseManager>();
+await databasemanager.CreateDatabaseIfNotExists();
 
+var parser = serviceProvider.GetRequiredService<IParser>();
 await parser.Parse("https://coinmarketcap.com/all/views/all/");
