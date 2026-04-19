@@ -43,53 +43,53 @@ namespace BLL.Services
                     parameters.Add(new SqlParameter(name, value));
                 }
 
-                if (options.FromDate.HasValue)
-                    Add("ParsedDate >= @FromDate", "@FromDate", options.FromDate.Value);
-
-                if (options.ToDate.HasValue)
-                    Add("ParsedDate <= @ToDate", "@ToDate", options.ToDate.Value);
-
-                if (options.FromRank.HasValue)
-                    Add("[Rank] >= @FromRank", "@FromRank", options.FromRank.Value);
-
-                if (options.ToRank.HasValue)
-                    Add("[Rank] <= @ToRank", "@ToRank", options.ToRank.Value);
-
                 if (!string.IsNullOrWhiteSpace(options.Name))
                     Add("Name LIKE @Name", "@Name", $"%{options.Name}%");
 
                 if (!string.IsNullOrWhiteSpace(options.Symbol))
                     Add("Symbol LIKE @Symbol", "@Symbol", $"%{options.Symbol}%");
 
-                if (options.FromMarketCap.HasValue)
-                    Add("MarketCap >= @FromMarketCap", "@FromMarketCap", options.FromMarketCap.Value);
+                if (options.DateFilter?.From != null)
+                    Add("ParsedDate >= @FromDate", "@FromDate", options.DateFilter.From);
 
-                if (options.ToMarketCap.HasValue)
-                    Add("MarketCap <= @ToMarketCap", "@ToMarketCap", options.ToMarketCap.Value);
+                if (options.DateFilter?.To != null)
+                    Add("ParsedDate <= @ToDate", "@ToDate", options.DateFilter.To);
 
-                if (options.FromPrice.HasValue)
-                    Add("Price >= @FromPrice", "@FromPrice", options.FromPrice.Value);
+                if (options.RankFilter?.From != null)
+                    Add("[Rank] >= @FromRank", "@FromRank", options.RankFilter.From);
 
-                if (options.ToPrice.HasValue)
-                    Add("Price <= @ToPrice", "@ToPrice", options.ToPrice.Value);
+                if (options.RankFilter?.To != null)
+                    Add("[Rank] <= @ToRank", "@ToRank", options.RankFilter.To);
 
-                if (options.FromCirculatingSupply.HasValue)
-                    Add("CirculatingSupply >= @FromCirculatingSupply", "@FromCirculatingSupply", options.FromCirculatingSupply.Value);
+                if (options.MarketCapFilter?.From != null)
+                    Add("MarketCap >= @FromMarketCap", "@FromMarketCap", options.MarketCapFilter.From);
 
-                if (options.ToCirculatingSupply.HasValue)
-                    Add("CirculatingSupply <= @ToCirculatingSupply", "@ToCirculatingSupply", options.ToCirculatingSupply.Value);
+                if (options.MarketCapFilter?.To != null)
+                    Add("MarketCap <= @ToMarketCap", "@ToMarketCap", options.MarketCapFilter.To);
 
-                if (options.FromVolume24h.HasValue)
-                    Add("Volume24h >= @FromVolume24h", "@FromVolume24h", options.FromVolume24h.Value);
+                if (options.PriceFilter?.From != null)
+                    Add("Price >= @FromPrice", "@FromPrice", options.PriceFilter.From);
 
-                if (options.ToVolume24h.HasValue)
-                    Add("Volume24h <= @ToVolume24h", "@ToVolume24h", options.ToVolume24h.Value);
+                if (options.PriceFilter?.To != null)
+                    Add("Price <= @ToPrice", "@ToPrice", options.PriceFilter.To);
 
-                if (options.FromPercent24h.HasValue)
-                    Add("Percent24h >= @FromPercent24h", "@FromPercent24h", options.FromPercent24h.Value);
+                if (options.CirculatingSupplyFilter?.From != null)
+                    Add("CirculatingSupply >= @FromCirculatingSupply", "@FromCirculatingSupply", options.CirculatingSupplyFilter.From);
 
-                if (options.ToPercent24h.HasValue)
-                    Add("Percent24h <= @ToPercent24h", "@ToPercent24h", options.ToPercent24h.Value);
+                if (options.CirculatingSupplyFilter?.To != null)
+                    Add("CirculatingSupply <= @ToCirculatingSupply", "@ToCirculatingSupply", options.CirculatingSupplyFilter.To);
+
+                if (options.Volume24hFilter?.From != null)
+                    Add("Volume24h >= @FromVolume24h", "@FromVolume24h", options.Volume24hFilter.From);
+
+                if (options.Volume24hFilter?.To != null)
+                    Add("Volume24h <= @ToVolume24h", "@ToVolume24h", options.Volume24hFilter.To);
+
+                if (options.Percent24hFilter?.From != null)
+                    Add("Percent24h >= @FromPercent24h", "@FromPercent24h", options.Percent24hFilter.From);
+
+                if (options.Percent24hFilter?.To != null)
+                    Add("Percent24h <= @ToPercent24h", "@ToPercent24h", options.Percent24hFilter.To);
 
                 var orderByOrderString = options.OrderByDescending ? "DESC" : "ASC";
                 sql.AppendLine($" ORDER BY {options.OrderBy} {orderByOrderString} ");
