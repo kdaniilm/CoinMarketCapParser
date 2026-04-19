@@ -32,5 +32,8 @@ namespace BLL.Models
 
         public decimal? FromPercent24h { get; set; }
         public decimal? ToPercent24h { get; set; }
+
+        public string OrderBy { get; set; } = "ParsedDate";
+        public bool OrderByDescending { get; set; } = false;
     }
 }

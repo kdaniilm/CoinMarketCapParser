@@ -91,7 +91,8 @@ namespace BLL.Services
                 if (options.ToPercent24h.HasValue)
                     Add("Percent24h <= @ToPercent24h", "@ToPercent24h", options.ToPercent24h.Value);
 
-                sql.AppendLine(" ORDER BY ParsedDate DESC ");
+                var orderByOrderString = options.OrderByDescending ? "DESC" : "ASC";
+                sql.AppendLine($" ORDER BY {options.OrderBy} {orderByOrderString} ");
 
                 var hasOffset = options.Offset.HasValue && options.Offset.Value >= 0;
                 var hasLimit = options.Limit.HasValue && options.Limit.Value >= 0;
