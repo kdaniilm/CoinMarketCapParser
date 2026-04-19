@@ -20,4 +20,5 @@ var databasemanager = serviceProvider.GetRequiredService<IDatabaseManager>();
 await databasemanager.CreateDatabaseIfNotExistsAsync();
 
 var parser = serviceProvider.GetRequiredService<IParser>();
-await parser.Parse("https://coinmarketcap.com/all/views/all/");
+var parseUrl = args[0] ?? "https://coinmarketcap.com/all/views/all/";
+await parser.Parse(parseUrl);

@@ -33,7 +33,7 @@ namespace Core.DatabaseManager
 
         private static async Task<string> GetScriptAsync(string scriptFileName)
         {
-            var scriptPath = Path.GetFullPath($@"..\..\..\..\Core\Scripts\{scriptFileName}.sql");
+            var scriptPath = Path.GetFullPath($@"{AppDomain.CurrentDomain.BaseDirectory}..\..\..\..\Core\Scripts\{scriptFileName}.sql");
             var script = await File.ReadAllTextAsync(scriptPath);
 
             return script;
