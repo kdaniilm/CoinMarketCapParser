@@ -43,57 +43,48 @@ namespace BLL.Services
                     parameters.Add(new SqlParameter(name, value));
                 }
 
-                // Date
                 if (options.FromDate.HasValue)
                     Add("ParsedDate >= @FromDate", "@FromDate", options.FromDate.Value);
 
                 if (options.ToDate.HasValue)
                     Add("ParsedDate <= @ToDate", "@ToDate", options.ToDate.Value);
 
-                // Rank
                 if (options.FromRank.HasValue)
                     Add("[Rank] >= @FromRank", "@FromRank", options.FromRank.Value);
 
                 if (options.ToRank.HasValue)
                     Add("[Rank] <= @ToRank", "@ToRank", options.ToRank.Value);
 
-                // Name (Contains)
                 if (!string.IsNullOrWhiteSpace(options.Name))
                     Add("Name LIKE @Name", "@Name", $"%{options.Name}%");
 
-                // Symbol (Contains)
                 if (!string.IsNullOrWhiteSpace(options.Symbol))
                     Add("Symbol LIKE @Symbol", "@Symbol", $"%{options.Symbol}%");
 
-                // MarketCap
                 if (options.FromMarketCap.HasValue)
                     Add("MarketCap >= @FromMarketCap", "@FromMarketCap", options.FromMarketCap.Value);
 
                 if (options.ToMarketCap.HasValue)
                     Add("MarketCap <= @ToMarketCap", "@ToMarketCap", options.ToMarketCap.Value);
 
-                // Price
                 if (options.FromPrice.HasValue)
                     Add("Price >= @FromPrice", "@FromPrice", options.FromPrice.Value);
 
                 if (options.ToPrice.HasValue)
                     Add("Price <= @ToPrice", "@ToPrice", options.ToPrice.Value);
 
-                // CirculatingSupply
                 if (options.FromCirculatingSupply.HasValue)
                     Add("CirculatingSupply >= @FromCirculatingSupply", "@FromCirculatingSupply", options.FromCirculatingSupply.Value);
 
                 if (options.ToCirculatingSupply.HasValue)
                     Add("CirculatingSupply <= @ToCirculatingSupply", "@ToCirculatingSupply", options.ToCirculatingSupply.Value);
 
-                // Volume24h
                 if (options.FromVolume24h.HasValue)
                     Add("Volume24h >= @FromVolume24h", "@FromVolume24h", options.FromVolume24h.Value);
 
                 if (options.ToVolume24h.HasValue)
                     Add("Volume24h <= @ToVolume24h", "@ToVolume24h", options.ToVolume24h.Value);
 
-                // Percent24h
                 if (options.FromPercent24h.HasValue)
                     Add("Percent24h >= @FromPercent24h", "@FromPercent24h", options.FromPercent24h.Value);
 
@@ -105,17 +96,14 @@ namespace BLL.Services
                 var hasOffset = options.Offset.HasValue && options.Offset.Value >= 0;
                 var hasLimit = options.Limit.HasValue && options.Limit.Value >= 0;
 
-                if (hasOffset && hasLimit)
+                if (hasOffset)
                 {
-                    sql.AppendLine($" OFFSET {options.Offset!.Value} ROWS FETCH NEXT {options.Limit!.Value} ROWS ONLY ");
+                    var limit = options.Limit.HasValue ? options.Limit.Value : long.MaxValue;
+                    sql.AppendLine($" OFFSET {options.Offset!.Value} ROWS FETCH NEXT {limit} ROWS ONLY ");
                 }
-                else if (!hasOffset && hasLimit)
+                else if(!hasOffset && hasLimit)
                 {
                     sql.Replace("SELECT", $"SELECT TOP ({options.Limit!.Value})");
-                }
-                else if(hasOffset && !hasLimit)
-                {
-                    sql.Replace("SELECT", $"SELECT LAST ({options.Offset!.Value})");
                 }
 
                 var result = new List<CoinMarketCapParsedDTO>();
