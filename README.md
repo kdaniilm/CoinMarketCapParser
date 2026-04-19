@@ -1,14 +1,7 @@
-TODO:
-1. Add basic structure+
-2. Add parser+
-3. Configure parser+
-4. Add concurency to parser
-5. Add Database
-6. Add logic to save parsed data into db
-7. Add Api
+Application serve to parse, save and get saved coins list from https://coinmarketcap.com/all/views/all/. As main Framework used .NET 10, for API used ASP.NET Core 10, for site data parsing used Microsoft.Playwright library.
 
-Optional:
-8. Add logs
-9. Add tests
-10. Add custom exception handling
-11. Add logic to run parser from API
+App builds with moduled architecture, were:
+1. Core - classLibrary to work with db, stores DatabaseManager, database identical models and scripts to create or update database.
+2. BLL - classLibrary to provide busines logic for Api and Parser.
+3. API - ASP.NET Core project with enabled swagger to get filtered data from database.
+4. ParserAgent - Console application to parse data from https://coinmarketcap.com/all/views/all/.
