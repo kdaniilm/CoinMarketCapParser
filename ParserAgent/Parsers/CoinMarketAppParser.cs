@@ -2,6 +2,7 @@
 using BLL.Services.Interfaces;
 using Microsoft.Playwright;
 using ParserAgent.Parsers.Interfaces;
+using System.Globalization;
 
 namespace ParserAgent.Parsers
 {
@@ -57,9 +58,6 @@ namespace ParserAgent.Parsers
                 {
                     while (await loadMoreButton!.IsVisibleAsync())
                     {
-#if DEBUG
-                        break;
-#endif
                         var rowsCount = await rows.CountAsync();
 
                         Console.WriteLine($"Rows loaded: {rowsCount}");
@@ -149,17 +147,36 @@ namespace ParserAgent.Parsers
             return result;
         }
 
-        private static decimal ParseDecimal(string decimalString)
+        private static decimal ParseDecimal(string input)
         {
-            try
+            if (string.IsNullOrWhiteSpace(input))
+                return 0;
+
+            input = input.Trim();
+
+            input = new string(input
+                .Where(c => char.IsDigit(c) || c == '.' || c == ',')
+                .ToArray());
+
+            if (input.Contains('.') && input.Contains(','))
             {
-                decimalString = new string(decimalString.Where(c => char.IsDigit(c) || c == '.').ToArray());
-
-                var isResultParsed = decimal.TryParse(decimalString, out var result);
-
-                return isResultParsed ? result : 0;
+                if (input.LastIndexOf('.') > input.LastIndexOf(','))
+                    input = input.Replace(",", "");
+                else
+                    input = input.Replace(".", "").Replace(',', '.');
             }
-            catch(Exception) { return 0; }
+            else
+            {
+                input = input.Replace(',', '.');
+            }
+
+            return decimal.TryParse(
+                input,
+                NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture,
+                out var result)
+                ? result
+                : 0;
         }
 
         private static Int64? ParseInt64(string int64String)
