@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.Sqlite;
 
 namespace Core.DatabaseManager
 {
@@ -8,7 +8,7 @@ namespace Core.DatabaseManager
         public string DatabaseName { get; private set; }
         public DatabaseManager()
         {
-            ConnectionString = "Server=.;Integrated Security=true;TrustServerCertificate=True;";
+            ConnectionString = $@"Data Source={AppDomain.CurrentDomain.BaseDirectory}..\..\..\..\Core\CoinMarketDb.db;";
             DatabaseName = "CoinMarketDb";
         }
 
@@ -16,17 +16,14 @@ namespace Core.DatabaseManager
         {
             var script = await GetScriptAsync("CreateDatabase");
 
-            var batches = script.Split(new[] { "GO" }, StringSplitOptions.RemoveEmptyEntries);
-
-            using var connection = new SqlConnection(ConnectionString);
+            using var connection = new SqliteConnection(ConnectionString);
             await connection.OpenAsync();
 
-            foreach (var batch in batches)
-            {
-                using var command = new SqlCommand(batch, connection);
-                command.CommandTimeout = 60;
-                await command.ExecuteNonQueryAsync();
-            }
+            using var command = connection.CreateCommand();
+            command.CommandText = script;
+            command.CommandTimeout = 60;
+
+            await command.ExecuteNonQueryAsync();
         }
 
         private static async Task<string> GetScriptAsync(string scriptFileName)
