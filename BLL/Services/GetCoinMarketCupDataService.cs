@@ -34,12 +34,10 @@ namespace BLL.Services
 
             var parameters = new List<SqliteParameter>();
 
-            void Add(string condition, string name, object value, SqliteType? type = null)
+            void Add(string condition, string name, object value)
             {
                 sql.AppendLine($" AND {condition}");
-                var parameter = new SqliteParameter(name, value ?? DBNull.Value);
-                if (type.HasValue) parameter.SqliteType = type.Value;
-                parameters.Add(parameter);
+                parameters.Add(new SqliteParameter(name, value));
             }
 
             if (!string.IsNullOrWhiteSpace(options.Name))
@@ -49,16 +47,16 @@ namespace BLL.Services
                 Add("Symbol LIKE @Symbol", "@Symbol", $"%{options.Symbol}%");
 
             if (options.DateFilter?.From != null)
-                Add("ParsedDate >= @FromDate", "@FromDate", options.DateFilter.From.ToString("yyyy-MM-dd HH:mm:ss"), SqliteType.Text);
+                Add("ParsedDate >= @FromDate", "@FromDate", options.DateFilter.From);
 
             if (options.DateFilter?.To != null)
-                Add("ParsedDate <= @ToDate", "@ToDate", options.DateFilter.To.ToString("yyyy-MM-dd HH:mm:ss"), SqliteType.Text);
+                Add("ParsedDate <= @ToDate", "@ToDate", options.DateFilter.To);
 
             if (options.RankFilter?.From != null)
-                Add("Rank >= @FromRank", "@FromRank", options.RankFilter.From, SqliteType.Integer);
+                Add("Rank >= @FromRank", "@FromRank", options.RankFilter.From);
 
             if (options.RankFilter?.To != null)
-                Add("Rank <= @FromRank", "@FromRank", options.RankFilter.To, SqliteType.Integer);
+                Add("Rank <= @ToRank", "@ToRank", options.RankFilter.To);
 
             if (options.MarketCapFilter?.From != null)
                 Add("MarketCap >= @FromMarketCap", "@FromMarketCap", options.MarketCapFilter.From);
