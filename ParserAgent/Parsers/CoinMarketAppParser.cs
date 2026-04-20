@@ -57,6 +57,9 @@ namespace ParserAgent.Parsers
                 {
                     while (await loadMoreButton!.IsVisibleAsync())
                     {
+#if DEBUG
+                        break;
+#endif
                         var rowsCount = await rows.CountAsync();
 
                         Console.WriteLine($"Rows loaded: {rowsCount}");

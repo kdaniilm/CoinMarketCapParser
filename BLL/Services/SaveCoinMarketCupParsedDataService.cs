@@ -1,7 +1,7 @@
 ﻿using BLL.Models;
 using BLL.Services.Interfaces;
 using Core.DatabaseManager;
-using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
 using System.Data;
 
 namespace BLL.Services
@@ -17,35 +17,57 @@ namespace BLL.Services
 
         public async Task SaveParsedDataAsync(List<CoinMarketCapParsedDTO> parsedData)
         {
-            using var connection = new SqlConnection(_databaseManager.ConnectionString);
+            using var connection = new SqliteConnection(_databaseManager.ConnectionString);
             await connection.OpenAsync();
+
+            using (var pragmaCmd = connection.CreateCommand())
+            {
+                pragmaCmd.CommandText = "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;";
+                await pragmaCmd.ExecuteNonQueryAsync();
+            }
 
             using var transaction = connection.BeginTransaction();
 
             try
             {
-                using (var bulk = new SqlBulkCopy(connection, SqlBulkCopyOptions.Default, transaction))
+                var command = connection.CreateCommand();
+                command.Transaction = transaction;
+
+                command.CommandText = @"
+                    INSERT INTO CoinMarketCup 
+                    (ParsedDate, Rank, Name, Symbol, MarketCap, Price, CirculatingSupply, Volume24h, Percent24h) 
+                    VALUES ($date, $rank, $name, $symbol, $mc, $price, $cs, $v24, $p24)";
+
+                var pDate = command.Parameters.Add("$date", SqliteType.Text);
+                var pRank = command.Parameters.Add("$rank", SqliteType.Integer);
+                var pName = command.Parameters.Add("$name", SqliteType.Text);
+                var pSymbol = command.Parameters.Add("$symbol", SqliteType.Text);
+                var pMc = command.Parameters.Add("$mc", SqliteType.Real);
+                var pPrice = command.Parameters.Add("$price", SqliteType.Real);
+                var pCs = command.Parameters.Add("$cs", SqliteType.Text);
+                var pV24 = command.Parameters.Add("$v24", SqliteType.Real);
+                var pP24 = command.Parameters.Add("$p24", SqliteType.Real);
+
+                foreach (var item in parsedData)
                 {
-                    bulk.DestinationTableName = $"{_databaseManager.DatabaseName}.[dbo].[CoinMarketCup]";
+                    pDate.Value = item.ParsedDate;
+                    pRank.Value = item.Rank;
+                    pName.Value = item.Name ?? (object)DBNull.Value;
+                    pSymbol.Value = item.Symbol ?? (object)DBNull.Value;
+                    pMc.Value = item.MarketCap;
+                    pPrice.Value = item.Price;
+                    pCs.Value = item.CirculatingSupply ?? (object)DBNull.Value;
+                    pV24.Value = item.Volume24h;
+                    pP24.Value = item.Percent24h;
 
-                    bulk.ColumnMappings.Add("ParsedDate", "ParsedDate");
-                    bulk.ColumnMappings.Add("Rank", "Rank");
-                    bulk.ColumnMappings.Add("Name", "Name");
-                    bulk.ColumnMappings.Add("Symbol", "Symbol");
-                    bulk.ColumnMappings.Add("MarketCap", "MarketCap");
-                    bulk.ColumnMappings.Add("Price", "Price");
-                    bulk.ColumnMappings.Add("CirculatingSupply", "CirculatingSupply");
-                    bulk.ColumnMappings.Add("Volume24h", "Volume24h");
-                    bulk.ColumnMappings.Add("Percent24h", "Percent24h");
-
-                    var table = ToDataTable(parsedData);
-                    await bulk.WriteToServerAsync(table);
+                    await command.ExecuteNonQueryAsync();
                 }
-                transaction.Commit();
+
+                await transaction.CommitAsync();
             }
             catch
             {
-                transaction.Rollback();
+                await transaction.RollbackAsync();
                 throw;
             }
         }
