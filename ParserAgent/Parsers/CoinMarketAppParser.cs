@@ -88,9 +88,27 @@ namespace ParserAgent.Parsers
                 for (int i = 0; i < total; i++)
                 {
                     Console.WriteLine($"Scrolling on row {i}...");
-                    await rows.Nth(i).ScrollIntoViewIfNeededAsync();
 
                     var row = rows.Nth(i);
+
+                    if (await IsUnLoadedAsync(row))
+                    {
+                        var start = DateTime.UtcNow;
+                        var timeoutMs = 5000;
+
+                        while (true)
+                        {
+                            await row.ScrollIntoViewIfNeededAsync();
+
+                            if (await IsUnLoadedAsync(row))
+                                break;
+
+                            if ((DateTime.UtcNow - start).TotalMilliseconds > timeoutMs)
+                                break;
+
+                            await Task.Delay(100);
+                        }
+                    }
 
                     var parsed = ParseRow(await row.InnerTextAsync());
 
@@ -113,16 +131,24 @@ namespace ParserAgent.Parsers
             }
         }
 
-        private static CoinMarketCapParsedDTO? ParseRow(string raw)
+        private static async Task<bool> IsUnLoadedAsync(ILocator row)
         {
-            if (string.IsNullOrWhiteSpace(raw))
+            var innerText = await row.InnerTextAsync();
+
+            if (string.IsNullOrWhiteSpace(innerText))
+                return false;
+
+            var parts = SplitRowContent(innerText);
+
+            return parts.Count < 10;
+        }
+
+        private static CoinMarketCapParsedDTO? ParseRow(string rowContent)
+        {
+            if (string.IsNullOrWhiteSpace(rowContent))
                 return null;
 
-            var parts = raw
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .ToList();
+            var parts = SplitRowContent(rowContent);
 
             if (parts.Count < 10)
                 return null;
@@ -145,6 +171,15 @@ namespace ParserAgent.Parsers
             };
 
             return result;
+        }
+
+        private static List<string> SplitRowContent(string rowContent)
+        {
+            return rowContent
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
         }
 
         private static decimal ParseDecimal(string input)
