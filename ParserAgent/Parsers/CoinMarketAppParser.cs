@@ -2,6 +2,7 @@
 using BLL.Services.Interfaces;
 using Microsoft.Playwright;
 using ParserAgent.Parsers.Interfaces;
+using SQLitePCL;
 using System.Globalization;
 
 namespace ParserAgent.Parsers
@@ -45,64 +46,53 @@ namespace ParserAgent.Parsers
 
                 Console.WriteLine($"Searching for \"Load More\" button...");
                 var loadMoreButton = page.Locator("button:has-text('Load More')");
-
-                var isLoadMoreButtonExists = loadMoreButton != null && (await loadMoreButton.CountAsync() > 0);
-
-                if (!isLoadMoreButtonExists)
-                    Console.WriteLine("\"Load More\" button not found.");
-
-                Console.WriteLine("Start loading rows to parse...");
+                    
+                Console.WriteLine("Start parsing rows...");
                 var rows = page.Locator("table tbody tr");
+                var parsedRows = new List<CoinMarketCapParsedDTO>();
+                var prevRowsCount = 0;
 
-                if (isLoadMoreButtonExists)
+                do
                 {
-                    while (await loadMoreButton!.IsVisibleAsync())
+                    var rowsCount = await rows.CountAsync();
+                    Console.WriteLine($"Rows loaded: {rowsCount}");
+
+                    for (int i = prevRowsCount; i < rowsCount; i++)
                     {
-                        var rowsCount = await rows.CountAsync();
+                        Console.WriteLine($"Start parsing row: {i}");
+                        var row = rows.Nth(i);
 
-                        Console.WriteLine($"Rows loaded: {rowsCount}");
-                        Console.WriteLine("Clicking \"Load More\" button...");
+                        if (await IsUnLoadedAsync(row))
+                        {
+                            Console.WriteLine($"Scrolling on row {i}...");
 
-                        await loadMoreButton.ClickAsync();
+                            await WaitForLoad(rows, i);
+                        }
 
+                        var parsed = ParseRow(await row.InnerTextAsync());
+
+                        if (parsed == null)
+                            Console.WriteLine($"Row have incorrect format: {row}");
+                        else
+                            parsedRows.Add(parsed);
+                    }
+
+                    prevRowsCount = rowsCount;
+
+                    Console.WriteLine("Clicking \"Load More\" button...");
+                
+                    if (loadMoreButton != null && (await loadMoreButton.CountAsync() > 0))
+                    {
+                        await loadMoreButton!.ClickAsync();
+                
                         await page.WaitForFunctionAsync(
                             @"(prev) => document.querySelectorAll('table tbody tr').length > prev",
                             rowsCount
                         );
                     }
-                }
-
-                var total = await rows.CountAsync();
-
-                if (total == 0) {
-                    Console.WriteLine("No rows to parse.");
-                    return;
-                }
-
-                Console.WriteLine($"Total loaded rows count: {total}.");
-
-                Console.WriteLine("Start parsing rows...");
-
-                var parsedRows = new List<CoinMarketCapParsedDTO>();
-
-                for (int i = 0; i < total; i++)
-                {
-                    Console.WriteLine($"Scrolling on row {i}...");
-                    await rows.Nth(i).ScrollIntoViewIfNeededAsync();
-
-                    var row = rows.Nth(i);
-
-                    var parsed = ParseRow(await row.InnerTextAsync());
-
-                    if (parsed == null)
-                        Console.WriteLine($"Row have incorrect format: {row}");
                     else
-                        parsedRows.Add(parsed);
-
-                    Console.WriteLine($"Parsed {i}/{total}");
-                }
-
-                Console.WriteLine("All rows parsed.");
+                        Console.WriteLine("\"Load More\" button not found.");
+                } while (await loadMoreButton!.IsVisibleAsync());
 
                 await _saveParsedDataService.SaveParsedDataAsync(parsedRows);
             }
@@ -113,16 +103,51 @@ namespace ParserAgent.Parsers
             }
         }
 
-        private static CoinMarketCapParsedDTO? ParseRow(string raw)
+        private async Task WaitForLoad(ILocator rows, int index)
         {
-            if (string.IsNullOrWhiteSpace(raw))
+            var start = DateTime.UtcNow;
+            var timeoutMs = 5000;
+            var row = rows.Nth(index);
+
+            while (true)
+            {
+                try
+                {
+                    await row.ScrollIntoViewIfNeededAsync();
+                }
+                catch
+                {
+                    row = rows.Nth(index);
+                }
+
+                if (!await IsUnLoadedAsync(row))
+                    break;
+
+                if ((DateTime.UtcNow - start).TotalMilliseconds > timeoutMs)
+                    break;
+
+                await Task.Delay(100);
+            }
+        }
+
+        private static async Task<bool> IsUnLoadedAsync(ILocator row)
+        {
+            var innerText = await row.InnerTextAsync();
+
+            if (string.IsNullOrWhiteSpace(innerText))
+                return false;
+
+            var parts = SplitRowContent(innerText);
+
+            return parts.Count < 10;
+        }
+
+        private static CoinMarketCapParsedDTO? ParseRow(string rowContent)
+        {
+            if (string.IsNullOrWhiteSpace(rowContent))
                 return null;
 
-            var parts = raw
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Trim())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .ToList();
+            var parts = SplitRowContent(rowContent);
 
             if (parts.Count < 10)
                 return null;
@@ -145,6 +170,15 @@ namespace ParserAgent.Parsers
             };
 
             return result;
+        }
+
+        private static List<string> SplitRowContent(string rowContent)
+        {
+            return rowContent
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
         }
 
         private static decimal ParseDecimal(string input)
