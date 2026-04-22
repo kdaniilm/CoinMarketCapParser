@@ -50,34 +50,45 @@ namespace ParserAgent.Parsers
                 Console.WriteLine("Start parsing rows...");
                 var rows = page.Locator("table tbody tr");
                 var parsedRows = new List<CoinMarketCapParsedDTO>();
-                var prevRowsCount = 0;
+                var parsedRowIndex = 0;
 
                 do
                 {
-                    var rowsCount = await rows.CountAsync();
-                    Console.WriteLine($"Rows loaded: {rowsCount}");
-
-                    for (int i = prevRowsCount; i < rowsCount; i++)
+                    while (await rows.CountAsync() > 0)
                     {
-                        Console.WriteLine($"Start parsing row: {i}");
-                        var row = rows.Nth(i);
+                        var row = rows.First;
 
-                        if (await IsUnLoadedAsync(row))
+                        Console.WriteLine($"Parsing row {parsedRowIndex}...");
+
+                        try
                         {
-                            Console.WriteLine($"Scrolling on row {i}...");
+                            if (await IsUnLoadedAsync(row))
+                            {
+                                Console.WriteLine($"Scrolling on row {parsedRowIndex}...");
+                                await WaitForLoad(row);
+                            }
 
-                            await WaitForLoad(rows, i);
+                            var text = row.InnerTextAsync();
+                            var parsed = ParseRow(await text);
+
+                            if (parsed != null)
+                            {
+                                parsedRows.Add(parsed);
+
+                                var handle = await row.ElementHandleAsync();
+                                if (handle != null)
+                                    await page.EvaluateAsync("(el) => el.remove()", handle);
+                            }
                         }
-
-                        var parsed = ParseRow(await row.InnerTextAsync());
-
-                        if (parsed == null)
-                            Console.WriteLine($"Row have incorrect format: {row}");
-                        else
-                            parsedRows.Add(parsed);
+                        catch (PlaywrightException)
+                        {
+                            continue;
+                        }
+                        finally
+                        {
+                            parsedRowIndex++;
+                        }
                     }
-
-                    prevRowsCount = rowsCount;
 
                     Console.WriteLine("Clicking \"Load More\" button...");
                 
@@ -87,11 +98,12 @@ namespace ParserAgent.Parsers
                 
                         await page.WaitForFunctionAsync(
                             @"(prev) => document.querySelectorAll('table tbody tr').length > prev",
-                            rowsCount
+                            await rows.CountAsync()
                         );
                     }
                     else
                         Console.WriteLine("\"Load More\" button not found.");
+
                 } while (await loadMoreButton!.IsVisibleAsync());
 
                 await _saveParsedDataService.SaveParsedDataAsync(parsedRows);
@@ -103,30 +115,26 @@ namespace ParserAgent.Parsers
             }
         }
 
-        private async Task WaitForLoad(ILocator rows, int index)
+        private async Task WaitForLoad(ILocator row)
         {
             var start = DateTime.UtcNow;
-            var timeoutMs = 5000;
-            var row = rows.Nth(index);
 
             while (true)
             {
                 try
                 {
-                    await row.ScrollIntoViewIfNeededAsync();
+                    if (!await IsUnLoadedAsync(row))
+                        return;
                 }
                 catch
                 {
-                    row = rows.Nth(index);
+                    return;
                 }
 
-                if (!await IsUnLoadedAsync(row))
-                    break;
+                if ((DateTime.UtcNow - start).TotalMilliseconds > 5000)
+                    return;
 
-                if ((DateTime.UtcNow - start).TotalMilliseconds > timeoutMs)
-                    break;
-
-                await Task.Delay(100);
+                await Task.Delay(50);
             }
         }
 
